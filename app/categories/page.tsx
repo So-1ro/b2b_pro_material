@@ -2,7 +2,7 @@ import Link from "next/link"
 import { ChevronRight } from "lucide-react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
-import { categories } from "@/components/layout/category-sidebar"
+import { categories } from "@/lib/data/categories"
 
 export default function CategoriesPage() {
   return (
