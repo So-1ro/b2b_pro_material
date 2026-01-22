@@ -1,0 +1,7 @@
+{
+  "buildCommand": "TURBOPACK=0 NEXT_FONT_MANUAL_DOWNLOAD=1 next build",
+  "env": {
+    "NEXT_FONT_MANUAL_DOWNLOAD": "1",
+    "TURBOPACK": "0"
+  }
+}
