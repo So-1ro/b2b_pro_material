@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "TURBOPACK=0 NEXT_FONT_MANUAL_DOWNLOAD=1 next build",
+    "build": "NEXT_DISABLE_TURBOPACK=1 NEXT_FONT_MANUAL_DOWNLOAD=1 next build",
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start"
