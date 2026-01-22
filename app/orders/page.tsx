@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import Link from "next/link"
 import { 
   ChevronRight, 
@@ -32,9 +32,8 @@ import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
 import { useSearchParams } from "next/navigation"
-import { Suspense } from "react"
 
-const Loading = () => null;
+const Loading = () => null
 
 interface OrderItem {
   id: string
@@ -133,7 +132,7 @@ const statusConfig = {
   cancelled: { label: "キャンセル", icon: XCircle, color: "bg-red-100 text-red-700" },
 }
 
-export default function OrdersPage() {
+function OrdersInner() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const { toast } = useToast()
@@ -163,13 +162,6 @@ export default function OrdersPage() {
     toast({
       title: "ダウンロード開始",
       description: `${labels[documentType]}をダウンロードしています...`,
-    })
-  }
-
-  const handleReorder = (order: Order) => {
-    toast({
-      title: "カートに追加しました",
-      description: `注文 ${order.orderNumber} の商品をカートに追加しました`,
     })
   }
 
@@ -328,7 +320,12 @@ export default function OrdersPage() {
                             {order.status !== "cancelled" && (
                               <Button
                                 size="sm"
-                                onClick={() => handleReorder(order)}
+                                onClick={() =>
+                                  toast({
+                                    title: "カートに追加しました",
+                                    description: `注文 ${order.orderNumber} の商品をカートに追加しました`,
+                                  })
+                                }
                                 className="gap-1"
                               >
                                 <RefreshCw className="h-3 w-3" />
@@ -352,3 +349,9 @@ export default function OrdersPage() {
     </Suspense>
   )
 }
+
+export default function OrdersPage() {
+  return <OrdersInner />
+}
+
+export { Loading }
