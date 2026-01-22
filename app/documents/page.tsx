@@ -1,14 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import Link from "next/link"
 import { 
   ChevronRight, 
   Search, 
   FileText, 
   Download, 
-  Calendar,
-  Filter,
   File
 } from "lucide-react"
 import { Header } from "@/components/layout/header"
@@ -28,7 +26,6 @@ import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
 import { useSearchParams } from "next/navigation"
-import { Suspense } from "react"
 
 interface Document {
   id: string
@@ -120,9 +117,9 @@ const documentTypeConfig = {
   invoice: { label: "請求書", color: "bg-amber-100 text-amber-700" },
 }
 
-const Loading = () => null;
+const Loading = () => null
 
-export default function DocumentsPage() {
+function DocumentsInner() {
   const [searchQuery, setSearchQuery] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [activeTab, setActiveTab] = useState("all")
@@ -150,7 +147,6 @@ export default function DocumentsPage() {
       })
       return
     }
-
     const link = document.createElement("a")
     link.href = doc.fileUrl || `/documents/${doc.documentNumber}.pdf`
     link.download = `${doc.documentNumber}.pdf`
@@ -172,7 +168,7 @@ export default function DocumentsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <>
       <Header />
       
       <main className="flex-1">
@@ -346,8 +342,18 @@ export default function DocumentsPage() {
 
       <Footer />
       <Toaster />
+    </>
+  )
+}
+
+export default function DocumentsPage() {
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Suspense fallback={<Loading />}>
+        <DocumentsInner />
+      </Suspense>
     </div>
   )
 }
 
-export { Loading };
+export { Loading }
