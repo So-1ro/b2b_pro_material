@@ -31,7 +31,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
-import { useSearchParams } from "next/navigation"
 
 const Loading = () => null
 
@@ -136,7 +135,6 @@ function OrdersContent() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const { toast } = useToast()
-  const searchParams = useSearchParams()
 
   const filteredOrders = mockOrders.filter((order) => {
     const matchesSearch = 
