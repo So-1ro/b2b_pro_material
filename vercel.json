@@ -1,7 +1,7 @@
 {
-  "buildCommand": "NEXT_DISABLE_TURBOPACK=1 NEXT_FONT_MANUAL_DOWNLOAD=1 next build",
+  "buildCommand": "npm run build",
   "env": {
-    "NEXT_FONT_MANUAL_DOWNLOAD": "1",
-    "NEXT_DISABLE_TURBOPACK": "1"
+    "NEXT_DISABLE_TURBOPACK": "1",
+    "NEXT_FONT_MANUAL_DOWNLOAD": "1"
   }
 }
