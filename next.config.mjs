@@ -11,6 +11,12 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    // 強制的に webpack ビルドを使用（Turbopack由来の 404 を防止）
+    turbo: {
+      enabled: false,
+    },
+  },
 }
 
 export default nextConfig
