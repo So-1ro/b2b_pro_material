@@ -38,8 +38,8 @@ export default function HomePage() {
   // Popular products (first 6)
   const popularProducts = products.slice(0, 6)
   
-  // Best sellers (shuffle and take 6)
-  const bestSellers = [...products].sort(() => Math.random() - 0.5).slice(0, 6)
+  // Best sellers (static pick to avoid SSR/client mismatch)
+  const bestSellers = products.slice(6, 12).length > 0 ? products.slice(6, 12) : products.slice(0, 6)
   
   // Same day shipping products
   const sameDayProducts = products.filter((p) => p.sameDay).slice(0, 6)
