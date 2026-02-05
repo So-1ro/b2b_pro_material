@@ -127,8 +127,19 @@ export default function CartPage() {
                   >
                     <div className="flex gap-4">
                       {/* Product Image */}
-                      <div className="w-24 h-24 bg-muted rounded-lg flex-shrink-0 flex items-center justify-center">
-                        <Package className="h-10 w-10 text-muted-foreground/30" />
+                      <div className="w-24 h-24 bg-muted rounded-lg flex-shrink-0 overflow-hidden relative">
+                        {item.product.images?.[0] ? (
+                          <img
+                            src={item.product.images[0]}
+                            alt={item.product.name}
+                            className="absolute inset-0 h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Package className="h-10 w-10 text-muted-foreground/30" />
+                          </div>
+                        )}
                       </div>
 
                       {/* Product Info */}

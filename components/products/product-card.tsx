@@ -16,6 +16,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product, onAddToCart, className }: ProductCardProps) {
   const priceWithTax = Math.floor(product.basePrice * (1 + product.taxRate))
+  const primaryImage = product.images?.[0]
 
   const stockStatus = {
     in_stock: { label: "在庫あり", color: "text-green-600" },
@@ -30,9 +31,18 @@ export function ProductCard({ product, onAddToCart, className }: ProductCardProp
     <Card className={cn("group overflow-hidden transition-shadow hover:shadow-md", className)}>
       <Link href={`/product/${product.id}`}>
         <div className="aspect-square relative bg-muted overflow-hidden">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Package className="h-16 w-16 text-muted-foreground/30" />
-          </div>
+          {primaryImage ? (
+            <img
+              src={primaryImage}
+              alt={product.name}
+              className="absolute inset-0 h-full w-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Package className="h-16 w-16 text-muted-foreground/30" />
+            </div>
+          )}
           {product.sameDay && (
             <Badge className="absolute top-2 left-2 bg-accent text-accent-foreground">
               <Truck className="h-3 w-3 mr-1" />
