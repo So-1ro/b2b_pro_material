@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
+import { createClient } from "@/utils/supabase/browser"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -28,16 +29,34 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate login
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    toast({
-      title: "ログインしました",
-      description: "ようこそ、ProMaterialへ",
-    })
+      if (error) {
+        throw error
+      }
 
-    router.push("/")
-    setIsLoading(false)
+      toast({
+        title: "ログインしました",
+        description: "ようこそ、ProMaterialへ",
+      })
+
+      router.push("/")
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "ログインに失敗しました"
+      toast({
+        title: "ログインに失敗しました",
+        description: message,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

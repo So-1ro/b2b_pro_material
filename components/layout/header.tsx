@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { 
   Search, 
@@ -15,7 +15,8 @@ import {
   MapPin,
   FileText,
   HelpCircle,
-  LogIn
+  LogIn,
+  LogOut
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/utils/supabase/browser"
 
 const categories = [
   "すべて",
@@ -51,6 +53,28 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState("すべて")
   const [searchQuery, setSearchQuery] = useState("")
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null)
+    })
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user?.email ?? null)
+    })
+
+    return () => {
+      authListener.subscription.unsubscribe()
+    }
+  }, [])
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    setUserEmail(null)
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full bg-card border-b border-border">
@@ -135,18 +159,37 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
           <div className="flex items-center gap-2">
             {!isAdmin && (
               <>
-                <Link href="/login" className="hidden lg:flex">
-                  <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-                    <LogIn className="h-4 w-4" />
-                    ログイン
-                  </Button>
-                </Link>
-                <Link href="/register" className="hidden lg:flex">
-                  <Button size="sm" className="gap-2">
-                    <User className="h-4 w-4" />
-                    新規登録
-                  </Button>
-                </Link>
+                {userEmail ? (
+                  <>
+                    <span className="hidden lg:inline text-xs text-muted-foreground">
+                      {userEmail}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hidden lg:flex gap-2 bg-transparent"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      ログアウト
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/login" className="hidden lg:flex">
+                      <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+                        <LogIn className="h-4 w-4" />
+                        ログイン
+                      </Button>
+                    </Link>
+                    <Link href="/register" className="hidden lg:flex">
+                      <Button size="sm" className="gap-2">
+                        <User className="h-4 w-4" />
+                        新規登録
+                      </Button>
+                    </Link>
+                  </>
+                )}
                 <Link href="/cart" className="relative">
                   <Button variant="ghost" size="icon" className="relative bg-transparent">
                     <ShoppingCart className="h-5 w-5" />
@@ -251,18 +294,36 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
         <div className="md:hidden border-t border-border bg-card">
           <nav className="container mx-auto px-4 py-4">
             <div className="flex flex-col gap-2">
-              <Link href="/login" className="w-full">
-                <Button variant="outline" className="w-full justify-start gap-2 bg-transparent">
-                  <LogIn className="h-4 w-4" />
-                  ログイン
-                </Button>
-              </Link>
-              <Link href="/register" className="w-full">
-                <Button className="w-full justify-start gap-2">
-                  <User className="h-4 w-4" />
-                  新規登録
-                </Button>
-              </Link>
+              {userEmail ? (
+                <>
+                  <div className="text-xs text-muted-foreground px-1">
+                    {userEmail}
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-2 bg-transparent"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    ログアウト
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="w-full">
+                    <Button variant="outline" className="w-full justify-start gap-2 bg-transparent">
+                      <LogIn className="h-4 w-4" />
+                      ログイン
+                    </Button>
+                  </Link>
+                  <Link href="/register" className="w-full">
+                    <Button className="w-full justify-start gap-2">
+                      <User className="h-4 w-4" />
+                      新規登録
+                    </Button>
+                  </Link>
+                </>
+              )}
               <div className="h-px bg-border my-2" />
               <Link href="/orders">
                 <Button variant="ghost" className="w-full justify-start gap-2 bg-transparent">
