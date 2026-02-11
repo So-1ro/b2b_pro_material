@@ -31,7 +31,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/utils/supabase/browser"
 import { useCart } from "@/lib/context/cart-context"
-import { categories as fallbackCategories } from "@/lib/data/categories"
+import { categories as fallbackCategories, type Category } from "@/lib/data/categories"
 
 interface HeaderProps {
   cartItemCount?: number
@@ -43,6 +43,19 @@ type SearchCategoryOption = {
   name: string
 }
 
+function flattenSearchCategoryOptions(categories: Category[]): SearchCategoryOption[] {
+  const options: SearchCategoryOption[] = []
+
+  for (const category of categories) {
+    options.push({ id: category.id, name: category.name })
+    for (const sub of category.subcategories ?? []) {
+      options.push({ id: sub.id, name: `${category.name} / ${sub.name}` })
+    }
+  }
+
+  return options
+}
+
 export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -51,7 +64,7 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [searchCategoryOptions, setSearchCategoryOptions] = useState<SearchCategoryOption[]>([
     { id: "all", name: "すべて" },
-    ...fallbackCategories.map((c) => ({ id: c.id, name: c.name })),
+    ...flattenSearchCategoryOptions(fallbackCategories),
   ])
   const [navCategories, setNavCategories] = useState(
     fallbackCategories.map((c) => ({ id: c.id, name: c.name, href: c.href }))
@@ -89,7 +102,7 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
         )
         setSearchCategoryOptions([
           { id: "all", name: "すべて" },
-          ...categories.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })),
+          ...flattenSearchCategoryOptions(categories as Category[]),
         ])
       })
       .catch(() => undefined)

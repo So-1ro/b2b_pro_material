@@ -5,7 +5,7 @@ import type { Product } from "@/lib/data/products"
 import type { Category } from "@/lib/data/categories"
 
 interface CategoryPageProps {
-  params: { slug: string[] }
+  params: Promise<{ slug: string[] }>
 }
 
 function flattenCategories(navCategories: Category[]) {
@@ -34,9 +34,10 @@ function filterByCategory(products: Product[], categoryId: string, flattened: Re
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
+  const resolvedParams = await params
   const navCategories = await fetchCategories()
   const flat = flattenCategories(navCategories)
-  const slug = Array.isArray(params.slug) ? params.slug : []
+  const slug = Array.isArray(resolvedParams.slug) ? resolvedParams.slug : []
 
   const currentId = slug.length > 0 ? slug[slug.length - 1] : "all"
   const currentCategory = flat.find((c) => c.id === currentId)

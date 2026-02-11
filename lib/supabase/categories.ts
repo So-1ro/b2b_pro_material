@@ -5,8 +5,8 @@ type CategoryRow = {
   id: string
   name: string
   parent_id: string | null
-  sort_order: number | null
-  is_active: boolean | null
+  sort_order?: number | null
+  is_active?: boolean | null
 }
 
 function buildTree(rows: CategoryRow[]): Category[] {
@@ -37,16 +37,26 @@ function buildTree(rows: CategoryRow[]): Category[] {
 export async function fetchCategories(): Promise<Category[]> {
   try {
     const supabase = await createClient()
-    const { data, error } = await supabase
+    const fullQuery = await supabase
       .from("categories")
       .select("id,name,parent_id,sort_order,is_active")
       .order("sort_order", { ascending: true })
 
-    if (error || !data) {
+    if (!fullQuery.error && fullQuery.data) {
+      const tree = buildTree(fullQuery.data as CategoryRow[])
+      if (tree.length > 0) return tree
+    }
+
+    // Some environments still have categories without sort_order/is_active.
+    const basicQuery = await supabase
+      .from("categories")
+      .select("id,name,parent_id")
+
+    if (basicQuery.error || !basicQuery.data) {
       return fallbackCategories
     }
 
-    const tree = buildTree(data as CategoryRow[])
+    const tree = buildTree(basicQuery.data as CategoryRow[])
     return tree.length > 0 ? tree : fallbackCategories
   } catch {
     return fallbackCategories

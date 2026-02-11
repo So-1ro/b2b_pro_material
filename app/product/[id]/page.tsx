@@ -3,13 +3,26 @@ import { Button } from "@/components/ui/button"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { fetchProductById, fetchProducts } from "@/lib/supabase/products"
+import { fetchCategories } from "@/lib/supabase/categories"
 import { ProductClient } from "@/app/product/[id]/product-client"
+import type { Category } from "@/lib/data/categories"
 
 interface ProductPageProps {
   params: Promise<{ id: string }>
 }
 
 export const dynamic = "force-dynamic"
+
+function flattenCategories(navCategories: Category[]) {
+  return navCategories.flatMap((cat) => [
+    { id: cat.id, name: cat.name, href: cat.href },
+    ...(cat.subcategories || []).map((sub) => ({
+      id: sub.id,
+      name: sub.name,
+      href: sub.href,
+    })),
+  ])
+}
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { id } = await params
@@ -39,6 +52,20 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const relatedProducts = allProducts
     .filter((p) => p.categoryId === product.categoryId && p.id !== product.id)
     .slice(0, 4)
+  const navCategories = await fetchCategories()
+  const flatCategories = flattenCategories(navCategories)
+  const matchedCategory = flatCategories.find((category) => category.id === product.categoryId)
+  const breadcrumbCategory = {
+    id: product.categoryId,
+    name: matchedCategory?.name ?? product.categoryId,
+    href: matchedCategory?.href ?? `/category/${product.categoryId}`,
+  }
 
-  return <ProductClient product={product} relatedProducts={relatedProducts} />
+  return (
+    <ProductClient
+      product={product}
+      relatedProducts={relatedProducts}
+      breadcrumbCategory={breadcrumbCategory}
+    />
+  )
 }

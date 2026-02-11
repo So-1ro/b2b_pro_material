@@ -30,9 +30,14 @@ import { useCart } from "@/lib/context/cart-context"
 type ProductClientProps = {
   product: Product
   relatedProducts: Product[]
+  breadcrumbCategory: {
+    id: string
+    name: string
+    href: string
+  }
 }
 
-export function ProductClient({ product, relatedProducts }: ProductClientProps) {
+export function ProductClient({ product, relatedProducts, breadcrumbCategory }: ProductClientProps) {
   const { toast } = useToast()
   const { addItem } = useCart()
   const [quantity, setQuantity] = useState(1)
@@ -79,8 +84,8 @@ export function ProductClient({ product, relatedProducts }: ProductClientProps) 
               トップ
             </Link>
             <ChevronRight className="h-4 w-4" />
-            <Link href={`/category/${product.categoryId}`} className="hover:text-foreground transition-colors">
-              {product.categoryId}
+            <Link href={breadcrumbCategory.href} className="hover:text-foreground transition-colors">
+              {breadcrumbCategory.name}
             </Link>
             <ChevronRight className="h-4 w-4" />
             <span className="text-foreground truncate">{product.name}</span>
