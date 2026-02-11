@@ -78,6 +78,20 @@ export default function CheckoutPage() {
         paymentMethod,
         deliveryNotes,
       })
+
+      // Order save success should not be rolled back even if notification fails.
+      await fetch("/api/notifications/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderNumber: orderNo,
+          amount: grandTotal,
+          itemCount,
+          paymentMethod,
+          deliveryNotes,
+        }),
+      }).catch(() => undefined)
+
       clearCart()
       toast({
         title: "ご注文ありがとうございます",
