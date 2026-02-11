@@ -59,6 +59,28 @@ function toProduct(row: ProductRow, overridePrice?: number | null): Product {
 const SELECT_COLUMNS =
   "id,product_code,name,standard_price,tax_rate,description,brand,category,images,image_url,stock_status,is_active"
 
+async function resolveOverrideMap(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  companyId: string | null | undefined,
+  productIds: string[]
+) {
+  const overrideMap = new Map<string, number>()
+  if (!companyId || productIds.length === 0) return overrideMap
+
+  const { data: priceRows } = await supabase
+    .from("prices")
+    .select("product_id,override_price")
+    .eq("company_id", companyId)
+    .in("product_id", productIds)
+
+  for (const row of (priceRows ?? []) as PriceRow[]) {
+    if (row.override_price !== null) {
+      overrideMap.set(row.product_id, row.override_price)
+    }
+  }
+  return overrideMap
+}
+
 export async function fetchProducts(): Promise<Product[]> {
   const supabase = await createClient()
   const branch = await fetchCurrentBranch()
@@ -73,22 +95,11 @@ export async function fetchProducts(): Promise<Product[]> {
   }
 
   const productRows = (data ?? []) as ProductRow[]
-  const overrideMap = new Map<string, number>()
-
-  if (branch?.company_id && productRows.length > 0) {
-    const ids = productRows.map((row) => row.id)
-    const { data: priceRows } = await supabase
-      .from("prices")
-      .select("product_id,override_price")
-      .eq("company_id", branch.company_id)
-      .in("product_id", ids)
-
-    for (const row of (priceRows ?? []) as PriceRow[]) {
-      if (row.override_price !== null) {
-        overrideMap.set(row.product_id, row.override_price)
-      }
-    }
-  }
+  const overrideMap = await resolveOverrideMap(
+    supabase,
+    branch?.company_id,
+    productRows.map((row) => row.id)
+  )
 
   return productRows.map((row) => {
     const overridePrice = overrideMap.get(row.id)
@@ -123,4 +134,44 @@ export async function fetchProductById(id: string): Promise<Product | null> {
   }
 
   return toProduct(data as ProductRow, overridePrice)
+}
+
+export async function fetchProductsBySearch(
+  query: string,
+  category?: string
+): Promise<Product[]> {
+  const supabase = await createClient()
+  const branch = await fetchCurrentBranch()
+  const normalizedQuery = query.trim()
+  const normalizedCategory = category?.trim()
+
+  let dbQuery = supabase
+    .from("products")
+    .select(SELECT_COLUMNS)
+    .eq("is_active", true)
+
+  if (normalizedCategory && normalizedCategory !== "すべて") {
+    dbQuery = dbQuery.eq("category", normalizedCategory)
+  }
+
+  if (normalizedQuery) {
+    const escaped = normalizedQuery.replace(/[%_,]/g, "")
+    dbQuery = dbQuery.or(
+      `name.ilike.%${escaped}%,product_code.ilike.%${escaped}%,brand.ilike.%${escaped}%,description.ilike.%${escaped}%`
+    )
+  }
+
+  const { data, error } = await dbQuery.order("name", { ascending: true })
+  if (error) {
+    throw new Error(`Failed to search products: ${error.message}`)
+  }
+
+  const productRows = (data ?? []) as ProductRow[]
+  const overrideMap = await resolveOverrideMap(
+    supabase,
+    branch?.company_id,
+    productRows.map((row) => row.id)
+  )
+
+  return productRows.map((row) => toProduct(row, overrideMap.get(row.id)))
 }

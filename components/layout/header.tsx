@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { 
   Search, 
   ShoppingCart, 
@@ -51,6 +52,7 @@ interface HeaderProps {
 }
 
 export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
+  const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState("すべて")
   const [searchQuery, setSearchQuery] = useState("")
@@ -77,6 +79,20 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
     const supabase = createClient()
     await supabase.auth.signOut()
     setUserEmail(null)
+  }
+
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const params = new URLSearchParams()
+    if (searchQuery.trim()) {
+      params.set("q", searchQuery.trim())
+    }
+    if (selectedCategory !== "すべて") {
+      params.set("category", selectedCategory)
+    }
+    const query = params.toString()
+    router.push(query ? `/search?${query}` : "/search")
+    setIsMenuOpen(false)
   }
 
   return (
@@ -117,7 +133,10 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
           {/* Search bar */}
           {!isAdmin && (
             <div className="flex-1 max-w-3xl hidden md:flex">
-              <div className="flex w-full border border-border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+              <form
+                onSubmit={handleSearchSubmit}
+                className="flex w-full border border-border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-primary"
+              >
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
@@ -150,11 +169,11 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex-1 border-0 rounded-none h-10 focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
-                <Button className="rounded-none h-10 px-6">
+                <Button type="submit" className="rounded-none h-10 px-6">
                   <Search className="h-4 w-4" />
                   <span className="sr-only">検索</span>
                 </Button>
-              </div>
+              </form>
             </div>
           )}
 
@@ -223,7 +242,10 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
       {/* Mobile search */}
       {!isAdmin && (
         <div className="mt-3 md:hidden">
-          <div className="flex w-full border border-border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="flex w-full border border-border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-primary"
+          >
             <Input
               type="text"
               placeholder="商品名、型番で検索"
@@ -231,10 +253,10 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 border-0 rounded-none h-10 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
-            <Button className="rounded-none h-10 px-4">
+            <Button type="submit" className="rounded-none h-10 px-4">
               <Search className="h-4 w-4" />
             </Button>
-          </div>
+          </form>
         </div>
       )}
       </div>
