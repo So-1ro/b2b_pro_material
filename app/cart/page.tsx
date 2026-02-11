@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { 
   ChevronRight, 
@@ -33,10 +33,32 @@ const initialCartItems: CartItem[] = [
   { product: products[1], quantity: 2 },
   { product: products[3], quantity: 3 },
 ]
+const CART_STORAGE_KEY = "cart"
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>(initialCartItems)
   const { toast } = useToast()
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CART_STORAGE_KEY)
+      if (raw) {
+        setCartItems(JSON.parse(raw) as CartItem[])
+        return
+      }
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(initialCartItems))
+    } catch {
+      // Ignore localStorage parsing errors
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems))
+    } catch {
+      // Ignore localStorage write errors
+    }
+  }, [cartItems])
 
   const updateQuantity = (productId: string, newQuantity: number) => {
     if (newQuantity < 1) return

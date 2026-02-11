@@ -15,10 +15,11 @@ type ProductRow = {
   image_url: string | null
   stock_status: string | null
   is_active: boolean | null
-  prices?: {
-    override_price: number | null
-    company_id: string | null
-  }[] | null
+}
+
+type PriceRow = {
+  product_id: string
+  override_price: number | null
 }
 
 const STOCK_STATUSES = new Set(["in_stock", "low_stock", "out_of_stock", "contact"])
@@ -57,59 +58,69 @@ function toProduct(row: ProductRow, overridePrice?: number | null): Product {
 
 const SELECT_COLUMNS =
   "id,product_code,name,standard_price,tax_rate,description,brand,category,images,image_url,stock_status,is_active"
-const SELECT_COLUMNS_WITH_PRICES = `${SELECT_COLUMNS}, prices:prices(override_price, company_id)`
-
-function resolveOverridePrice(row: ProductRow): number | null {
-  if (!row.prices || row.prices.length === 0) return null
-  const match = row.prices.find((p) => p.override_price !== null)
-  return match?.override_price ?? null
-}
 
 export async function fetchProducts(): Promise<Product[]> {
   const supabase = await createClient()
   const branch = await fetchCurrentBranch()
-  const query = supabase
+  const { data, error } = await supabase
     .from("products")
-    .select(branch ? SELECT_COLUMNS_WITH_PRICES : SELECT_COLUMNS)
+    .select(SELECT_COLUMNS)
     .eq("is_active", true)
     .order("name", { ascending: true })
-
-  if (branch?.company_id) {
-    query.eq("prices.company_id", branch.company_id)
-  }
-
-  const { data, error } = await query
 
   if (error) {
     throw new Error(`Failed to fetch products: ${error.message}`)
   }
 
-  return (data ?? []).map((row) => {
-    const overridePrice = resolveOverridePrice(row as ProductRow)
-    return toProduct(row as ProductRow, overridePrice)
+  const productRows = (data ?? []) as ProductRow[]
+  const overrideMap = new Map<string, number>()
+
+  if (branch?.company_id && productRows.length > 0) {
+    const ids = productRows.map((row) => row.id)
+    const { data: priceRows } = await supabase
+      .from("prices")
+      .select("product_id,override_price")
+      .eq("company_id", branch.company_id)
+      .in("product_id", ids)
+
+    for (const row of (priceRows ?? []) as PriceRow[]) {
+      if (row.override_price !== null) {
+        overrideMap.set(row.product_id, row.override_price)
+      }
+    }
+  }
+
+  return productRows.map((row) => {
+    const overridePrice = overrideMap.get(row.id)
+    return toProduct(row, overridePrice)
   })
 }
 
 export async function fetchProductById(id: string): Promise<Product | null> {
   const supabase = await createClient()
   const branch = await fetchCurrentBranch()
-  const query = supabase
+  const { data, error } = await supabase
     .from("products")
-    .select(branch ? SELECT_COLUMNS_WITH_PRICES : SELECT_COLUMNS)
+    .select(SELECT_COLUMNS)
     .or(`id.eq.${id},product_code.eq.${id}`)
     .single()
-
-  if (branch?.company_id) {
-    query.eq("prices.company_id", branch.company_id)
-  }
-
-  const { data, error } = await query
 
   if (error) {
     return null
   }
 
   if (!data) return null
-  const overridePrice = resolveOverridePrice(data as ProductRow)
+  let overridePrice: number | null = null
+
+  if (branch?.company_id) {
+    const { data: priceRow } = await supabase
+      .from("prices")
+      .select("override_price")
+      .eq("company_id", branch.company_id)
+      .eq("product_id", (data as ProductRow).id)
+      .single()
+    overridePrice = (priceRow as { override_price: number | null } | null)?.override_price ?? null
+  }
+
   return toProduct(data as ProductRow, overridePrice)
 }

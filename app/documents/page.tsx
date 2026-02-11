@@ -1,115 +1,17 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { 
-  ChevronRight, 
-  Search, 
-  FileText, 
-  Download, 
-  File
-} from "lucide-react"
+import { ChevronRight, Search, Download } from "lucide-react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { cn } from "@/lib/utils"
-import { useSearchParams } from "next/navigation"
-
-interface Document {
-  id: string
-  type: "po" | "dn" | "invoice"
-  documentNumber: string
-  orderNumber: string
-  issueDate: string
-  amount: number
-  status: "available" | "pending"
-  fileUrl: string
-}
-
-const mockDocuments: Document[] = [
-  {
-    id: "1",
-    type: "invoice",
-    documentNumber: "INV-2026011501",
-    orderNumber: "ORD-2026011501",
-    issueDate: "2026-01-16",
-    amount: 10879,
-    status: "available",
-    fileUrl: "/documents/sample-invoice.pdf",
-  },
-  {
-    id: "2",
-    type: "dn",
-    documentNumber: "DN-2026011501",
-    orderNumber: "ORD-2026011501",
-    issueDate: "2026-01-15",
-    amount: 10879,
-    status: "available",
-    fileUrl: "/documents/sample-invoice.pdf",
-  },
-  {
-    id: "3",
-    type: "po",
-    documentNumber: "PO-2026011501",
-    orderNumber: "ORD-2026011501",
-    issueDate: "2026-01-15",
-    amount: 10879,
-    status: "available",
-    fileUrl: "/documents/sample-invoice.pdf",
-  },
-  {
-    id: "4",
-    type: "dn",
-    documentNumber: "DN-2026011002",
-    orderNumber: "ORD-2026011002",
-    issueDate: "2026-01-11",
-    amount: 6534,
-    status: "available",
-    fileUrl: "/documents/sample-invoice.pdf",
-  },
-  {
-    id: "5",
-    type: "po",
-    documentNumber: "PO-2026011002",
-    orderNumber: "ORD-2026011002",
-    issueDate: "2026-01-10",
-    amount: 6534,
-    status: "available",
-    fileUrl: "/documents/sample-invoice.pdf",
-  },
-  {
-    id: "6",
-    type: "po",
-    documentNumber: "PO-2026010503",
-    orderNumber: "ORD-2026010503",
-    issueDate: "2026-01-05",
-    amount: 33836,
-    status: "available",
-    fileUrl: "/documents/sample-invoice.pdf",
-  },
-  {
-    id: "7",
-    type: "invoice",
-    documentNumber: "INV-2026011002",
-    orderNumber: "ORD-2026011002",
-    issueDate: "2026-01-12",
-    amount: 6534,
-    status: "pending",
-    fileUrl: "/documents/sample-invoice.pdf",
-  },
-]
+import { fetchDocumentsForCurrentUser, type UiDocument } from "@/lib/supabase/client-orders"
 
 const documentTypeConfig = {
   po: { label: "発注書", color: "bg-blue-100 text-blue-700" },
@@ -117,28 +19,48 @@ const documentTypeConfig = {
   invoice: { label: "請求書", color: "bg-amber-100 text-amber-700" },
 }
 
-const Loading = () => null
-
-function DocumentsInner() {
+export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [typeFilter, setTypeFilter] = useState("all")
   const [activeTab, setActiveTab] = useState("all")
+  const [documents, setDocuments] = useState<UiDocument[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
-  const searchParams = useSearchParams()
 
-  const filteredDocuments = mockDocuments.filter((doc) => {
-    const matchesSearch = 
-      doc.documentNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.orderNumber.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    const matchesType = typeFilter === "all" || doc.type === typeFilter
-    
-    const matchesTab = activeTab === "all" || doc.type === activeTab
-    
-    return matchesSearch && matchesType && matchesTab
-  })
+  useEffect(() => {
+    let mounted = true
+    async function run() {
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await fetchDocumentsForCurrentUser()
+        if (!mounted) return
+        setDocuments(data)
+      } catch (e) {
+        if (!mounted) return
+        setError(e instanceof Error ? e.message : "帳票の取得に失敗しました。")
+      } finally {
+        if (!mounted) return
+        setLoading(false)
+      }
+    }
+    run()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
-  const handleDownload = (doc: Document) => {
+  const filteredDocuments = useMemo(() => {
+    return documents.filter((doc) => {
+      const matchesSearch =
+        doc.documentNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.orderNumber.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesTab = activeTab === "all" || doc.type === activeTab
+      return matchesSearch && matchesTab
+    })
+  }, [documents, searchQuery, activeTab])
+
+  const handleDownload = (doc: UiDocument) => {
     if (doc.status === "pending") {
       toast({
         title: "準備中",
@@ -147,8 +69,17 @@ function DocumentsInner() {
       })
       return
     }
+    if (!doc.fileUrl) {
+      toast({
+        title: "URL未設定",
+        description: "帳票URLが設定されていません。",
+        variant: "destructive",
+      })
+      return
+    }
+
     const link = document.createElement("a")
-    link.href = doc.fileUrl || `/documents/${doc.documentNumber}.pdf`
+    link.href = doc.fileUrl
     link.download = `${doc.documentNumber}.pdf`
     link.target = "_blank"
     link.rel = "noopener"
@@ -161,19 +92,17 @@ function DocumentsInner() {
   }
 
   const documentCounts = {
-    all: mockDocuments.length,
-    po: mockDocuments.filter((d) => d.type === "po").length,
-    dn: mockDocuments.filter((d) => d.type === "dn").length,
-    invoice: mockDocuments.filter((d) => d.type === "invoice").length,
+    all: documents.length,
+    po: documents.filter((d) => d.type === "po").length,
+    dn: documents.filter((d) => d.type === "dn").length,
+    invoice: documents.filter((d) => d.type === "invoice").length,
   }
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      
       <main className="flex-1">
         <div className="container mx-auto px-4 py-6">
-          {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
             <Link href="/" className="hover:text-foreground transition-colors">
               トップ
@@ -184,7 +113,6 @@ function DocumentsInner() {
 
           <h1 className="text-2xl font-bold mb-6 text-foreground">帳票管理</h1>
 
-          {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
             <TabsList className="bg-muted">
               <TabsTrigger value="all" className="gap-1">
@@ -214,7 +142,6 @@ function DocumentsInner() {
             </TabsList>
           </Tabs>
 
-          {/* Search */}
           <div className="relative max-w-md mb-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -226,134 +153,71 @@ function DocumentsInner() {
             />
           </div>
 
-          {/* Documents List */}
-          {filteredDocuments.length === 0 ? (
+          {loading && <p className="text-muted-foreground">読み込み中...</p>}
+          {!loading && error && <p className="text-destructive">{error}</p>}
+          {!loading && !error && filteredDocuments.length === 0 && (
             <div className="text-center py-12">
               <p className="text-muted-foreground">該当する帳票が見つかりませんでした</p>
             </div>
-          ) : (
+          )}
+
+          {!loading && !error && filteredDocuments.length > 0 && (
             <div className="bg-card rounded-lg border border-border overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border bg-muted/50">
-                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">
-                        種類
-                      </th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">
-                        帳票番号
-                      </th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">
-                        注文番号
-                      </th>
-                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">
-                        発行日
-                      </th>
-                      <th className="text-right px-4 py-3 text-sm font-medium text-muted-foreground">
-                        金額（税込）
-                      </th>
-                      <th className="text-center px-4 py-3 text-sm font-medium text-muted-foreground">
-                        ステータス
-                      </th>
-                      <th className="text-center px-4 py-3 text-sm font-medium text-muted-foreground">
-                        操作
-                      </th>
+                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">種類</th>
+                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">帳票番号</th>
+                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">注文番号</th>
+                      <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">発行日</th>
+                      <th className="text-right px-4 py-3 text-sm font-medium text-muted-foreground">金額（税込）</th>
+                      <th className="text-center px-4 py-3 text-sm font-medium text-muted-foreground">ステータス</th>
+                      <th className="text-center px-4 py-3 text-sm font-medium text-muted-foreground">操作</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredDocuments.map((doc) => {
-                      const typeInfo = documentTypeConfig[doc.type]
-                      
-                      return (
-                        <tr 
-                          key={doc.id}
-                          className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
-                        >
-                          <td className="px-4 py-3">
-                            <Badge className={typeInfo.color}>
-                              {typeInfo.label}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <File className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium text-foreground">
-                                {doc.documentNumber}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <Link 
-                              href={`/orders?q=${doc.orderNumber}`}
-                              className="text-primary hover:underline"
-                            >
-                              {doc.orderNumber}
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {doc.issueDate}
-                          </td>
-                          <td className="px-4 py-3 text-right font-medium text-foreground">
-                            ¥{doc.amount.toLocaleString()}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            {doc.status === "available" ? (
-                              <Badge variant="secondary" className="bg-green-100 text-green-700">
-                                ダウンロード可
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="bg-slate-100 text-slate-700">
-                                準備中
-                              </Badge>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDownload(doc)}
-                              disabled={doc.status === "pending"}
-                              className="gap-1 bg-transparent"
-                            >
-                              <Download className="h-3 w-3" />
-                              PDF
-                            </Button>
-                          </td>
-                        </tr>
-                      )
-                    })}
+                    {filteredDocuments.map((doc) => (
+                      <tr key={doc.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                        <td className="px-4 py-3">
+                          <Badge className={documentTypeConfig[doc.type].color}>
+                            {documentTypeConfig[doc.type].label}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 font-medium text-foreground">{doc.documentNumber}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{doc.orderNumber}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{doc.issueDate}</td>
+                        <td className="px-4 py-3 text-right font-medium text-foreground">
+                          ¥{doc.amount.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <Badge variant={doc.status === "available" ? "default" : "secondary"}>
+                            {doc.status === "available" ? "閲覧可能" : "準備中"}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDownload(doc)}
+                            disabled={doc.status === "pending"}
+                            className="gap-1 bg-transparent"
+                          >
+                            <Download className="h-3 w-3" />
+                            ダウンロード
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
-
-          {/* Help Text */}
-          <div className="mt-8 p-4 bg-secondary rounded-lg">
-            <h3 className="font-bold text-foreground mb-2">帳票について</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>・<strong>発注書（PO）</strong>：ご注文確定時に発行されます</li>
-              <li>・<strong>納品書（DN）</strong>：商品出荷時に発行されます</li>
-              <li>・<strong>請求書（Invoice）</strong>：商品配送完了後に発行されます</li>
-            </ul>
-          </div>
         </div>
       </main>
-
       <Footer />
       <Toaster />
-    </>
-  )
-}
-
-export default function DocumentsPage() {
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Suspense fallback={<Loading />}>
-        <DocumentsInner />
-      </Suspense>
     </div>
   )
 }
-
-export { Loading }

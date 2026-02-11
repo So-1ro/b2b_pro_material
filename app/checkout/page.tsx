@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { 
@@ -15,36 +15,26 @@ import {
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { products, type Product } from "@/lib/data/products"
+import type { Product } from "@/lib/data/products"
 import { cn } from "@/lib/utils"
+import {
+  fetchCurrentBranchProfile,
+  submitOrder,
+  type BranchProfile,
+  type CheckoutCartItem,
+} from "@/lib/supabase/client-orders"
 
-interface CartItem {
+interface CartItem extends CheckoutCartItem {
   product: Product
-  quantity: number
 }
 
-// Mock data
-const mockCartItems: CartItem[] = [
-  { product: products[0], quantity: 5 },
-  { product: products[1], quantity: 2 },
-]
-
-const mockBranch = {
-  name: "東京本社",
-  zipCode: "100-0001",
-  prefecture: "東京都",
-  city: "千代田区",
-  address1: "丸の内1-1-1",
-  address2: "○○ビル5F",
-  phone: "03-1234-5678",
-}
+const CART_STORAGE_KEY = "cart"
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -53,8 +43,42 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("invoice")
   const [deliveryNotes, setDeliveryNotes] = useState("")
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [branch, setBranch] = useState<BranchProfile | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const cartItems = mockCartItems
+  useEffect(() => {
+    let mounted = true
+    async function init() {
+      try {
+        const raw = localStorage.getItem(CART_STORAGE_KEY)
+        const parsed = raw ? (JSON.parse(raw) as CartItem[]) : []
+        if (mounted) {
+          setCartItems(parsed)
+        }
+      } catch {
+        if (mounted) {
+          setCartItems([])
+        }
+      }
+
+      try {
+        const currentBranch = await fetchCurrentBranchProfile()
+        if (mounted) {
+          setBranch(currentBranch)
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false)
+        }
+      }
+    }
+    init()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
   const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
   
   const subtotal = cartItems.reduce(
@@ -72,17 +96,28 @@ export default function CheckoutPage() {
   const grandTotal = total + shippingFee
 
   const handleSubmitOrder = async () => {
-    setIsSubmitting(true)
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    
-    toast({
-      title: "ご注文ありがとうございます",
-      description: "注文を受け付けました。確認メールをお送りしました。",
-    })
-    
-    router.push("/checkout/complete")
+    try {
+      setIsSubmitting(true)
+      const orderNo = await submitOrder({
+        items: cartItems,
+        paymentMethod,
+        deliveryNotes,
+      })
+      localStorage.removeItem(CART_STORAGE_KEY)
+      toast({
+        title: "ご注文ありがとうございます",
+        description: `注文番号 ${orderNo} を受け付けました。`,
+      })
+      router.push("/checkout/complete")
+    } catch (e) {
+      toast({
+        title: "注文に失敗しました",
+        description: e instanceof Error ? e.message : "時間をおいて再実行してください。",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const steps = [
@@ -90,6 +125,45 @@ export default function CheckoutPage() {
     { id: 2, name: "お支払い方法", icon: CreditCard },
     { id: 3, name: "注文確認", icon: FileText },
   ]
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 py-12 text-muted-foreground">
+          読み込み中...
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (!branch) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 py-12">
+          <p className="text-destructive">拠点情報が見つかりません。再ログインしてください。</p>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 py-12">
+          <p className="text-muted-foreground mb-4">カートが空です。</p>
+          <Link href="/">
+            <Button>商品一覧へ戻る</Button>
+          </Link>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -175,18 +249,12 @@ export default function CheckoutPage() {
                     <div className="flex items-start gap-3">
                       <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
                       <div>
-                        <p className="font-medium text-foreground">{mockBranch.name}</p>
+                        <p className="font-medium text-foreground">{branch.name}</p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          〒{mockBranch.zipCode}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {mockBranch.prefecture}{mockBranch.city}{mockBranch.address1}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {mockBranch.address2}
+                          {branch.address}
                         </p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          TEL: {mockBranch.phone}
+                          TEL: {branch.phone}
                         </p>
                       </div>
                     </div>
@@ -292,8 +360,8 @@ export default function CheckoutPage() {
                       </Button>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      <p className="font-medium text-foreground">{mockBranch.name}</p>
-                      <p>〒{mockBranch.zipCode} {mockBranch.prefecture}{mockBranch.city}{mockBranch.address1} {mockBranch.address2}</p>
+                      <p className="font-medium text-foreground">{branch.name}</p>
+                      <p>{branch.address}</p>
                       {deliveryNotes && <p className="mt-2">備考: {deliveryNotes}</p>}
                     </div>
                   </div>

@@ -1,19 +1,18 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { 
-  ChevronRight, 
-  Search, 
-  FileText, 
-  Download, 
+import {
+  ChevronRight,
+  Search,
+  Download,
   Package,
   Clock,
   Truck,
   CheckCircle,
   XCircle,
   RefreshCw,
-  Filter
+  Filter,
 } from "lucide-react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
@@ -27,101 +26,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
-
-const Loading = () => null
-
-interface OrderItem {
-  id: string
-  name: string
-  quantity: number
-  unitPrice: number
-}
-
-interface Order {
-  id: string
-  orderNumber: string
-  orderDate: string
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled"
-  items: OrderItem[]
-  subtotal: number
-  tax: number
-  total: number
-  documents: {
-    po?: string
-    dn?: string
-    invoice?: string
-  }
-}
-
-const mockOrders: Order[] = [
-  {
-    id: "1",
-    orderNumber: "ORD-2026011501",
-    orderDate: "2026-01-15",
-    status: "delivered",
-    items: [
-      { id: "1", name: "コピー用紙 高白色 A4 250枚", quantity: 10, unitPrice: 349 },
-      { id: "2", name: "ニトリル手袋 パウダーフリー M 100枚入り", quantity: 5, unitPrice: 1280 },
-    ],
-    subtotal: 9890,
-    tax: 989,
-    total: 10879,
-    documents: {
-      po: "/documents/sample-invoice.pdf",
-      dn: "/documents/sample-invoice.pdf",
-      invoice: "/documents/sample-invoice.pdf",
-    },
-  },
-  {
-    id: "2",
-    orderNumber: "ORD-2026011002",
-    orderDate: "2026-01-10",
-    status: "shipped",
-    items: [
-      { id: "3", name: "安全ヘルメット 白 飛来・落下物用", quantity: 3, unitPrice: 1980 },
-    ],
-    subtotal: 5940,
-    tax: 594,
-    total: 6534,
-    documents: {
-      po: "/documents/sample-invoice.pdf",
-      dn: "/documents/sample-invoice.pdf",
-    },
-  },
-  {
-    id: "3",
-    orderNumber: "ORD-2026010503",
-    orderDate: "2026-01-05",
-    status: "processing",
-    items: [
-      { id: "5", name: "充電式インパクトドライバー 18V", quantity: 1, unitPrice: 24800 },
-      { id: "8", name: "デジタルノギス 150mm", quantity: 2, unitPrice: 2980 },
-    ],
-    subtotal: 30760,
-    tax: 3076,
-    total: 33836,
-    documents: {
-      po: "/documents/sample-invoice.pdf",
-    },
-  },
-  {
-    id: "4",
-    orderNumber: "ORD-2025122804",
-    orderDate: "2025-12-28",
-    status: "cancelled",
-    items: [
-      { id: "4", name: "OPPテープ 透明 50mm×100m 6巻", quantity: 20, unitPrice: 890 },
-    ],
-    subtotal: 17800,
-    tax: 1780,
-    total: 19580,
-    documents: {},
-  },
-]
+import { fetchOrdersForCurrentUser, type UiOrder } from "@/lib/supabase/client-orders"
 
 const statusConfig = {
   pending: { label: "受付中", icon: Clock, color: "bg-slate-100 text-slate-700" },
@@ -131,24 +39,50 @@ const statusConfig = {
   cancelled: { label: "キャンセル", icon: XCircle, color: "bg-red-100 text-red-700" },
 }
 
-function OrdersContent() {
+export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [orders, setOrders] = useState<UiOrder[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
-  const filteredOrders = mockOrders.filter((order) => {
-    const matchesSearch = 
+  useEffect(() => {
+    let mounted = true
+    async function run() {
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await fetchOrdersForCurrentUser()
+        if (!mounted) return
+        setOrders(data)
+      } catch (e) {
+        if (!mounted) return
+        setError(e instanceof Error ? e.message : "注文履歴の取得に失敗しました。")
+      } finally {
+        if (!mounted) return
+        setLoading(false)
+      }
+    }
+    run()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const filteredOrders = orders.filter((order) => {
+    const matchesSearch =
       order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.items.some((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    
+
     const matchesStatus = statusFilter === "all" || order.status === statusFilter
-    
     return matchesSearch && matchesStatus
   })
 
-  const handleDownload = (documentType: "po" | "dn" | "invoice", order: Order) => {
+  const handleDownload = (documentType: "po" | "dn" | "invoice", order: UiOrder) => {
     const labels = { po: "発注書", dn: "納品書", invoice: "請求書" } as const
-    const url = order.documents[documentType] || "/documents/sample-invoice.pdf"
+    const url = order.documents[documentType]
+    if (!url) return
 
     const link = document.createElement("a")
     link.href = url
@@ -166,10 +100,8 @@ function OrdersContent() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      
       <main className="flex-1">
         <div className="container mx-auto px-4 py-6">
-          {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
             <Link href="/" className="hover:text-foreground transition-colors">
               トップ
@@ -180,7 +112,6 @@ function OrdersContent() {
 
           <h1 className="text-2xl font-bold mb-6 text-foreground">注文履歴</h1>
 
-          {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -208,23 +139,22 @@ function OrdersContent() {
             </Select>
           </div>
 
-          {/* Orders List */}
-          {filteredOrders.length === 0 ? (
+          {loading && <p className="text-muted-foreground">読み込み中...</p>}
+          {!loading && error && <p className="text-destructive">{error}</p>}
+          {!loading && !error && filteredOrders.length === 0 && (
             <div className="text-center py-12">
               <p className="text-muted-foreground">該当する注文が見つかりませんでした</p>
             </div>
-          ) : (
+          )}
+
+          {!loading && !error && filteredOrders.length > 0 && (
             <div className="space-y-4">
               {filteredOrders.map((order) => {
                 const statusInfo = statusConfig[order.status]
                 const StatusIcon = statusInfo.icon
 
                 return (
-                  <div
-                    key={order.id}
-                    className="bg-card rounded-lg border border-border overflow-hidden"
-                  >
-                    {/* Order Header */}
+                  <div key={order.id} className="bg-card rounded-lg border border-border overflow-hidden">
                     <div className="bg-muted/50 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-4">
                         <div>
@@ -242,21 +172,15 @@ function OrdersContent() {
                       </Badge>
                     </div>
 
-                    {/* Order Items */}
                     <div className="p-4">
                       <div className="space-y-3">
                         {order.items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center gap-4"
-                          >
+                          <div key={item.id} className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
                               <Package className="h-6 w-6 text-muted-foreground/30" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-foreground truncate">
-                                {item.name}
-                              </p>
+                              <p className="font-medium text-foreground truncate">{item.name}</p>
                               <p className="text-sm text-muted-foreground">
                                 ¥{item.unitPrice.toLocaleString()} × {item.quantity}
                               </p>
@@ -270,16 +194,11 @@ function OrdersContent() {
 
                       <div className="mt-4 pt-4 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="text-right sm:text-left">
-                          <p className="text-sm text-muted-foreground">
-                            合計（税込）
-                          </p>
-                          <p className="text-xl font-bold text-accent">
-                            ¥{order.total.toLocaleString()}
-                          </p>
+                          <p className="text-sm text-muted-foreground">合計（税込）</p>
+                          <p className="text-xl font-bold text-accent">¥{order.total.toLocaleString()}</p>
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                          {/* Document Downloads */}
                           {order.documents.po && (
                             <Button
                               variant="outline"
@@ -313,7 +232,6 @@ function OrdersContent() {
                               請求書
                             </Button>
                           )}
-                          
                           {order.status !== "cancelled" && (
                             <Button
                               size="sm"
@@ -339,19 +257,8 @@ function OrdersContent() {
           )}
         </div>
       </main>
-
       <Footer />
       <Toaster />
     </div>
   )
 }
-
-export default function OrdersPage() {
-  return (
-    <Suspense fallback={<Loading />}>
-      <OrdersContent />
-    </Suspense>
-  )
-}
-
-export { Loading }
