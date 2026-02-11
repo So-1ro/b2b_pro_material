@@ -2,9 +2,12 @@ import Link from "next/link"
 import { ChevronRight } from "lucide-react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
-import { categories } from "@/lib/data/categories"
+import { fetchCategories } from "@/lib/supabase/categories"
 
-export default function CategoriesPage() {
+export const dynamic = "force-dynamic"
+
+export default async function CategoriesPage() {
+  const categories = await fetchCategories()
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />

@@ -31,20 +31,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/utils/supabase/browser"
 import { useCart } from "@/lib/context/cart-context"
-
-const categories = [
-  "すべて",
-  "安全保護具・作業服・安全靴",
-  "物流/保管/梱包用品/テープ",
-  "オフィスサプライ",
-  "切削工具・研磨材",
-  "測定・測量用品",
-  "作業工具/電動・空圧工具",
-  "配管・水廻り部材/ポンプ",
-  "建築金物・建材・塗装内装用品",
-  "空調・電設資材/電気材料",
-  "自動車用品",
-]
+import { categories as fallbackCategories } from "@/lib/data/categories"
 
 interface HeaderProps {
   cartItemCount?: number
@@ -57,6 +44,13 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
   const [selectedCategory, setSelectedCategory] = useState("すべて")
   const [searchQuery, setSearchQuery] = useState("")
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [searchCategories, setSearchCategories] = useState<string[]>([
+    "すべて",
+    ...fallbackCategories.map((c) => c.name),
+  ])
+  const [navCategories, setNavCategories] = useState(
+    fallbackCategories.map((c) => ({ id: c.id, name: c.name, href: c.href }))
+  )
   const { itemCount } = useCart()
   const displayCartCount = cartItemCount > 0 ? cartItemCount : itemCount
 
@@ -73,6 +67,24 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
     return () => {
       authListener.subscription.unsubscribe()
     }
+  }, [])
+
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((res) => res.json())
+      .then((payload) => {
+        const categories = Array.isArray(payload?.categories) ? payload.categories : []
+        if (categories.length === 0) return
+        setNavCategories(
+          categories.map((c: { id: string; name: string; href?: string }) => ({
+            id: c.id,
+            name: c.name,
+            href: c.href || `/category/${c.id}`,
+          }))
+        )
+        setSearchCategories(["すべて", ...categories.map((c: { name: string }) => c.name)])
+      })
+      .catch(() => undefined)
   }, [])
 
   const handleLogout = async () => {
@@ -158,7 +170,7 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-64 max-h-80 overflow-y-auto">
-                    {categories.map((category) => (
+                    {searchCategories.map((category) => (
                       <DropdownMenuItem 
                         key={category}
                         onClick={() => setSelectedCategory(category)}
@@ -285,10 +297,10 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-64">
-                  {categories.slice(1).map((category) => (
-                    <DropdownMenuItem key={category} asChild>
-                      <Link href={`/category/${encodeURIComponent(category)}`}>
-                        {category}
+                  {navCategories.map((category) => (
+                    <DropdownMenuItem key={category.id} asChild>
+                      <Link href={category.href}>
+                        {category.name}
                       </Link>
                     </DropdownMenuItem>
                   ))}
@@ -381,10 +393,10 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
               </Link>
               <div className="h-px bg-border my-2" />
               <p className="text-sm font-medium text-muted-foreground mb-2">カテゴリー</p>
-              {categories.slice(1, 6).map((category) => (
-                <Link key={category} href={`/category/${encodeURIComponent(category)}`}>
+              {navCategories.slice(0, 5).map((category) => (
+                <Link key={category.id} href={category.href}>
                   <Button variant="ghost" className="w-full justify-start text-sm bg-transparent">
-                    {category}
+                    {category.name}
                   </Button>
                 </Link>
               ))}

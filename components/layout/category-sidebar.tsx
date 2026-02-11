@@ -4,15 +4,17 @@ import { useState } from "react"
 import Link from "next/link"
 import { ChevronRight, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { categories, type Category } from "@/lib/data/categories"
+import { categories as fallbackCategories, type Category } from "@/lib/data/categories"
 
 interface CategorySidebarProps {
   className?: string
   currentCategoryId?: string
+  categories?: Category[]
 }
 
-export function CategorySidebar({ className, currentCategoryId }: CategorySidebarProps) {
+export function CategorySidebar({ className, currentCategoryId, categories }: CategorySidebarProps) {
   const [expandedCategories, setExpandedCategories] = useState<string[]>([currentCategoryId || ""])
+  const sourceCategories = categories && categories.length > 0 ? categories : fallbackCategories
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories((prev) =>
@@ -30,7 +32,7 @@ export function CategorySidebar({ className, currentCategoryId }: CategorySideba
         </div>
         <nav className="p-2">
           <ul className="space-y-1">
-            {categories.map((category) => {
+            {sourceCategories.map((category) => {
               const isExpanded = expandedCategories.includes(category.id)
               const isActive = currentCategoryId === category.id
 
@@ -98,4 +100,4 @@ export function CategorySidebar({ className, currentCategoryId }: CategorySideba
   )
 }
 
-export { categories }
+export { fallbackCategories as categories }

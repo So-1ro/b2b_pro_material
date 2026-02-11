@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/footer"
 import { CategorySidebar } from "@/components/layout/category-sidebar"
 import { ProductGrid } from "@/components/products/product-grid"
 import type { Product } from "@/lib/data/products"
+import type { Category } from "@/lib/data/categories"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { useCart } from "@/lib/context/cart-context"
@@ -22,9 +23,10 @@ type CategoryClientProps = {
   products: Product[]
   currentCategoryId: string
   currentCategory: CategoryInfo
+  categories: Category[]
 }
 
-export function CategoryClient({ products, currentCategoryId, currentCategory }: CategoryClientProps) {
+export function CategoryClient({ products, currentCategoryId, currentCategory, categories }: CategoryClientProps) {
   const { toast } = useToast()
   const { addItem } = useCart()
 
@@ -60,7 +62,7 @@ export function CategoryClient({ products, currentCategoryId, currentCategory }:
 
           <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
             <div className="hidden lg:block">
-              <CategorySidebar currentCategoryId={currentCategoryId} />
+              <CategorySidebar currentCategoryId={currentCategoryId} categories={categories} />
             </div>
 
             <div>

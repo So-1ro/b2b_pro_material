@@ -7,15 +7,17 @@ import { HeroCarousel } from "@/components/home/hero-carousel"
 import { CategoryGrid } from "@/components/home/category-grid"
 import { ProductCarousel } from "@/components/home/product-carousel"
 import type { Product } from "@/lib/data/products"
+import type { Category } from "@/lib/data/categories"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { useCart } from "@/lib/context/cart-context"
 
 type HomeClientProps = {
   products: Product[]
+  categories: Category[]
 }
 
-export function HomeClient({ products }: HomeClientProps) {
+export function HomeClient({ products, categories }: HomeClientProps) {
   const { addItem } = useCart()
   const { toast } = useToast()
 
@@ -43,7 +45,7 @@ export function HomeClient({ products }: HomeClientProps) {
           </section>
 
           <section className="mb-10">
-            <CategoryGrid />
+            <CategoryGrid categories={categories} />
           </section>
 
           <section className="mb-10">
