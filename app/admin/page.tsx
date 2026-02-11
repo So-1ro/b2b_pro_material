@@ -351,7 +351,7 @@ export default function AdminDashboardPage() {
                 onClick={() =>
                   toast({
                     title: "CSVインポート",
-                    description: "デモ環境のため未接続です。",
+                    description: "CSVインポートは次回実装予定です。",
                   })
                 }
               >
@@ -482,7 +482,7 @@ export default function AdminDashboardPage() {
                 onClick={() =>
                   toast({
                     title: "ファイル選択",
-                    description: "デモ環境のためアップロードは擬似処理です。",
+                    description: "帳票アップロードは次回実装予定です。",
                   })
                 }
               >

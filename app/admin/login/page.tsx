@@ -12,9 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-
-const SAMPLE_ADMIN_ID = "admin@promaterial.example.com"
-const SAMPLE_ADMIN_PASSWORD = "admin1234"
+import { createClient } from "@/utils/supabase/browser"
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -28,26 +26,29 @@ export default function AdminLoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    if (adminId !== SAMPLE_ADMIN_ID || password !== SAMPLE_ADMIN_PASSWORD) {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithPassword({
+        email: adminId,
+        password,
+      })
+      if (error) {
+        throw error
+      }
+      toast({
+        title: "運営管理者としてログインしました",
+        description: "ダッシュボードへ移動します。",
+      })
+      router.push("/admin")
+    } catch (err) {
       toast({
         title: "認証に失敗しました",
-        description: "運営IDまたはパスワードが正しくありません。",
+        description: err instanceof Error ? err.message : "メールアドレスまたはパスワードが正しくありません。",
         variant: "destructive",
       })
+    } finally {
       setIsLoading(false)
-      return
     }
-
-    toast({
-      title: "運営管理者としてログインしました",
-      description: "ダッシュボードへ移動します。",
-    })
-
-    router.push("/admin")
-    setIsLoading(false)
   }
 
   return (
@@ -137,10 +138,6 @@ export default function AdminLoginPage() {
                 )}
               </Button>
             </form>
-
-            <div className="mt-4 text-xs text-muted-foreground text-center">
-              サンプルID: {SAMPLE_ADMIN_ID} / パスワード: {SAMPLE_ADMIN_PASSWORD}
-            </div>
 
             <div className="mt-4 pt-6 border-top border-border text-sm text-muted-foreground text-center">
               拠点ユーザーの方は{" "}

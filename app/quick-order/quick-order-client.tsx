@@ -140,7 +140,6 @@ export function QuickOrderClient({ products }: QuickOrderClientProps) {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">CSVアップロード準備中</Badge>
               <Badge variant="secondary">自拠点のみ閲覧可</Badge>
             </div>
           </div>
@@ -308,7 +307,7 @@ export function QuickOrderClient({ products }: QuickOrderClientProps) {
                       行を追加
                     </Button>
                     <div className="text-sm text-muted-foreground">
-                      CSVアップロードでの一括登録は現在準備中です
+                      SKUと数量の手入力で一括登録できます
                     </div>
                   </div>
 

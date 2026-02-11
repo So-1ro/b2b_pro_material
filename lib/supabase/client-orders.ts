@@ -311,7 +311,7 @@ export async function submitOrder(params: {
     order_id: orderData.id,
     type: "po",
     document_number: `PO-${currentOrderNumber.replace("ORD-", "")}`,
-    url: "https://placehold.co/600x800?text=PO",
+    url: "",
     status: "pending",
   })
 
