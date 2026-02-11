@@ -37,7 +37,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const allProducts = await fetchProducts()
   const relatedProducts = allProducts
-    .filter((p) => p.category === product.category && p.id !== product.id)
+    .filter((p) => p.categoryId === product.categoryId && p.id !== product.id)
     .slice(0, 4)
 
   return <ProductClient product={product} relatedProducts={relatedProducts} />

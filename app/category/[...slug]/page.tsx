@@ -24,15 +24,12 @@ export const dynamic = "force-dynamic"
 
 function filterByCategory(products: Product[], categoryId: string, flattened: ReturnType<typeof flattenCategories>) {
   if (categoryId === "all") return products
-  const currentCategory = flattened.find((c) => c.id === categoryId)
-  const childNames = flattened
+  const childIds = flattened
     .filter((c) => c.parent === categoryId)
-    .map((c) => c.name)
-  const matchNames = new Set(
-    [categoryId, currentCategory?.name, ...childNames].filter(Boolean) as string[]
-  )
+    .map((c) => c.id)
+  const matchIds = new Set([categoryId, ...childIds])
   return products.filter(
-    (p) => matchNames.has(p.category) || matchNames.has(p.subcategory)
+    (p) => matchIds.has(p.categoryId) || matchIds.has(p.subcategoryId)
   )
 }
 

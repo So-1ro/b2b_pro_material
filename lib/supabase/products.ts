@@ -10,7 +10,7 @@ type ProductRow = {
   tax_rate: number | null
   description: string | null
   brand: string | null
-  category: string | null
+  category_id: string | null
   images: string[] | null
   image_url: string | null
   stock_status: string | null
@@ -43,8 +43,8 @@ function toProduct(row: ProductRow, overridePrice?: number | null): Product {
     description: row.description ?? "",
     basePrice: overridePrice ?? row.standard_price ?? 0,
     taxRate: (row.tax_rate ?? 10) / 100,
-    category: row.category ?? "uncategorized",
-    subcategory: row.category ?? "uncategorized",
+    categoryId: row.category_id ?? "uncategorized",
+    subcategoryId: row.category_id ?? "uncategorized",
     brand: row.brand ?? "",
     images,
     specs: {},
@@ -57,7 +57,7 @@ function toProduct(row: ProductRow, overridePrice?: number | null): Product {
 }
 
 const SELECT_COLUMNS =
-  "id,product_code,name,standard_price,tax_rate,description,brand,category,images,image_url,stock_status,is_active"
+  "id,product_code,name,standard_price,tax_rate,description,brand,category_id,images,image_url,stock_status,is_active"
 
 async function resolveOverrideMap(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -138,20 +138,20 @@ export async function fetchProductById(id: string): Promise<Product | null> {
 
 export async function fetchProductsBySearch(
   query: string,
-  category?: string
+  categoryId?: string
 ): Promise<Product[]> {
   const supabase = await createClient()
   const branch = await fetchCurrentBranch()
   const normalizedQuery = query.trim()
-  const normalizedCategory = category?.trim()
+  const normalizedCategoryId = categoryId?.trim()
 
   let dbQuery = supabase
     .from("products")
     .select(SELECT_COLUMNS)
     .eq("is_active", true)
 
-  if (normalizedCategory && normalizedCategory !== "すべて") {
-    dbQuery = dbQuery.eq("category", normalizedCategory)
+  if (normalizedCategoryId && normalizedCategoryId !== "all") {
+    dbQuery = dbQuery.eq("category_id", normalizedCategoryId)
   }
 
   if (normalizedQuery) {

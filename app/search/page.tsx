@@ -13,13 +13,13 @@ type SearchPageProps = {
 export const dynamic = "force-dynamic"
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const { q = "", category } = await searchParams
-  const filtered = await fetchProductsBySearch(q, category)
+  const { q = "", category: categoryId } = await searchParams
+  const filtered = await fetchProductsBySearch(q, categoryId)
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <SearchClient products={filtered} query={q} category={category} />
+      <SearchClient products={filtered} query={q} categoryId={categoryId} />
       <Footer />
     </div>
   )

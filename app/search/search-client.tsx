@@ -11,10 +11,10 @@ import { useCart } from "@/lib/context/cart-context"
 type SearchClientProps = {
   products: Product[]
   query: string
-  category?: string
+  categoryId?: string
 }
 
-export function SearchClient({ products, query, category }: SearchClientProps) {
+export function SearchClient({ products, query, categoryId }: SearchClientProps) {
   const { addItem } = useCart()
   const { toast } = useToast()
 
@@ -40,7 +40,7 @@ export function SearchClient({ products, query, category }: SearchClientProps) {
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-foreground">検索結果</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            キーワード: {query || "未指定"} / カテゴリ: {category || "すべて"} / {products.length}件
+            キーワード: {query || "未指定"} / カテゴリID: {categoryId || "すべて"} / {products.length}件
           </p>
         </div>
 

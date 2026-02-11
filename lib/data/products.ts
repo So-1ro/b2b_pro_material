@@ -5,8 +5,8 @@ export interface Product {
   description: string
   basePrice: number
   taxRate: number
-  category: string
-  subcategory: string
+  categoryId: string
+  subcategoryId: string
   brand: string
   images: string[]
   specs: Record<string, string>

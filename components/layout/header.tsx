@@ -38,15 +38,20 @@ interface HeaderProps {
   isAdmin?: boolean
 }
 
+type SearchCategoryOption = {
+  id: string
+  name: string
+}
+
 export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState("すべて")
+  const [selectedCategoryId, setSelectedCategoryId] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [searchCategories, setSearchCategories] = useState<string[]>([
-    "すべて",
-    ...fallbackCategories.map((c) => c.name),
+  const [searchCategoryOptions, setSearchCategoryOptions] = useState<SearchCategoryOption[]>([
+    { id: "all", name: "すべて" },
+    ...fallbackCategories.map((c) => ({ id: c.id, name: c.name })),
   ])
   const [navCategories, setNavCategories] = useState(
     fallbackCategories.map((c) => ({ id: c.id, name: c.name, href: c.href }))
@@ -82,7 +87,10 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
             href: c.href || `/category/${c.id}`,
           }))
         )
-        setSearchCategories(["すべて", ...categories.map((c: { name: string }) => c.name)])
+        setSearchCategoryOptions([
+          { id: "all", name: "すべて" },
+          ...categories.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })),
+        ])
       })
       .catch(() => undefined)
   }, [])
@@ -99,13 +107,16 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
     if (searchQuery.trim()) {
       params.set("q", searchQuery.trim())
     }
-    if (selectedCategory !== "すべて") {
-      params.set("category", selectedCategory)
+    if (selectedCategoryId !== "all") {
+      params.set("category", selectedCategoryId)
     }
     const query = params.toString()
     router.push(query ? `/search?${query}` : "/search")
     setIsMenuOpen(false)
   }
+
+  const selectedCategoryName =
+    searchCategoryOptions.find((option) => option.id === selectedCategoryId)?.name ?? "すべて"
 
   return (
     <header className="sticky top-0 z-50 w-full bg-card border-b border-border">
@@ -165,21 +176,21 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
                       variant="ghost" 
                       className="rounded-none border-r border-border px-3 h-10 text-sm font-normal hover:bg-muted bg-transparent"
                     >
-                      <span className="max-w-[100px] truncate">{selectedCategory}</span>
+                      <span className="max-w-[100px] truncate">{selectedCategoryName}</span>
                       <ChevronDown className="ml-1 h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-64 max-h-80 overflow-y-auto">
-                    {searchCategories.map((category) => (
+                    {searchCategoryOptions.map((category) => (
                       <DropdownMenuItem 
-                        key={category}
-                        onClick={() => setSelectedCategory(category)}
+                        key={category.id}
+                        onClick={() => setSelectedCategoryId(category.id)}
                         className={cn(
                           "cursor-pointer",
-                          selectedCategory === category && "bg-secondary"
+                          selectedCategoryId === category.id && "bg-secondary"
                         )}
                       >
-                        {category}
+                        {category.name}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>

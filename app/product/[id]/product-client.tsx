@@ -79,8 +79,8 @@ export function ProductClient({ product, relatedProducts }: ProductClientProps) 
               トップ
             </Link>
             <ChevronRight className="h-4 w-4" />
-            <Link href={`/category/${product.category}`} className="hover:text-foreground transition-colors">
-              {product.category}
+            <Link href={`/category/${product.categoryId}`} className="hover:text-foreground transition-colors">
+              {product.categoryId}
             </Link>
             <ChevronRight className="h-4 w-4" />
             <span className="text-foreground truncate">{product.name}</span>
