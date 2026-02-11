@@ -49,6 +49,9 @@ export function AnnouncementBanner() {
             <span className="text-sm font-medium text-destructive flex-shrink-0">
               重要なお知らせ
             </span>
+            <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] text-red-700 flex-shrink-0">
+              ダミー表示
+            </span>
             <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide">
               {announcements.map((announcement, index) => (
                 <Link

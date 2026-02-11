@@ -84,6 +84,14 @@ export function HeroCarousel() {
                   )}>
                     <Icon className="h-6 w-6" />
                   </div>
+                  <span
+                    className={cn(
+                      "rounded px-2 py-1 text-xs",
+                      slide.textColor ? "bg-foreground/10 text-secondary-foreground" : "bg-primary-foreground/20 text-primary-foreground"
+                    )}
+                  >
+                    ダミー表示
+                  </span>
                 </div>
                 <h2 className="text-2xl md:text-4xl font-bold mb-4 whitespace-pre-line leading-tight">
                   {slide.title}

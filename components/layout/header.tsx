@@ -101,9 +101,19 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
       <div className="bg-primary text-primary-foreground">
         <div className="container mx-auto px-4 py-2 flex items-center justify-between text-sm">
           <div className="flex items-center gap-4">
-            <span className="hidden sm:inline">取扱点数 <strong>50,000</strong> 点以上</span>
+            <span className="hidden sm:inline">
+              取扱点数 <strong>50,000</strong> 点以上
+              <span className="ml-2 rounded bg-primary-foreground/20 px-1.5 py-0.5 text-[10px]">
+                ダミー表示
+              </span>
+            </span>
             <span className="hidden md:inline">|</span>
-            <span className="hidden md:inline">当日出荷対応商品多数</span>
+            <span className="hidden md:inline">
+              当日出荷対応商品多数
+              <span className="ml-2 rounded bg-primary-foreground/20 px-1.5 py-0.5 text-[10px]">
+                ダミー表示
+              </span>
+            </span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/help" className="flex items-center gap-1 hover:opacity-80 transition-opacity">
@@ -307,6 +317,7 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
                 <MapPin className="h-4 w-4" />
                 <span>お届け先：</span>
                 <span className="font-medium text-foreground">〒100-0001</span>
+                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">ダミー表示</span>
                 <ChevronDown className="h-4 w-4" />
               </div>
             </div>

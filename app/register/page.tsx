@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { createClient } from "@/utils/supabase/browser"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -56,26 +55,26 @@ export default function RegisterPage() {
 
     setIsSubmitting(true)
     try {
-      const supabase = createClient()
-      const { error } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          data: {
-            company: form.company,
-            location: form.location,
-            name: form.name,
-          },
-        },
+      const res = await fetch("/api/register-corporate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company: form.company,
+          location: form.location,
+          name: form.name,
+          email: form.email,
+          password: form.password,
+        }),
       })
 
-      if (error) {
-        throw error
+      const payload = (await res.json()) as { error?: string; message?: string }
+      if (!res.ok) {
+        throw new Error(payload.error ?? "登録に失敗しました。")
       }
 
       toast({
         title: "登録が完了しました",
-        description: "確認メールをご確認ください。",
+        description: payload.message ?? "確認メールをご確認ください。",
       })
       router.push("/login")
     } catch (err) {
