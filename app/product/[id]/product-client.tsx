@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import type { Product } from "@/lib/data/products"
 import { cn } from "@/lib/utils"
+import { useCart } from "@/lib/context/cart-context"
 
 type ProductClientProps = {
   product: Product
@@ -33,6 +34,7 @@ type ProductClientProps = {
 
 export function ProductClient({ product, relatedProducts }: ProductClientProps) {
   const { toast } = useToast()
+  const { addItem } = useCart()
   const [quantity, setQuantity] = useState(1)
   const [isFavorite, setIsFavorite] = useState(false)
   const primaryImage = product.images?.[0]
@@ -51,6 +53,7 @@ export function ProductClient({ product, relatedProducts }: ProductClientProps) 
   const StatusIcon = status.icon
 
   const handleAddToCart = () => {
+    addItem(product, quantity)
     toast({
       title: "カートに追加しました",
       description: `${product.name} × ${quantity}点 をカートに追加しました`,

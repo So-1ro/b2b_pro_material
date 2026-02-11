@@ -27,14 +27,13 @@ import {
   fetchCurrentBranchProfile,
   submitOrder,
   type BranchProfile,
-  type CheckoutCartItem,
 } from "@/lib/supabase/client-orders"
+import { useCart } from "@/lib/context/cart-context"
 
-interface CartItem extends CheckoutCartItem {
+interface CartItem {
   product: Product
+  quantity: number
 }
-
-const CART_STORAGE_KEY = "cart"
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -43,25 +42,13 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState("invoice")
   const [deliveryNotes, setDeliveryNotes] = useState("")
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [branch, setBranch] = useState<BranchProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const { items: cartItems, clearCart, itemCount, subtotal, tax } = useCart()
 
   useEffect(() => {
     let mounted = true
     async function init() {
-      try {
-        const raw = localStorage.getItem(CART_STORAGE_KEY)
-        const parsed = raw ? (JSON.parse(raw) as CartItem[]) : []
-        if (mounted) {
-          setCartItems(parsed)
-        }
-      } catch {
-        if (mounted) {
-          setCartItems([])
-        }
-      }
-
       try {
         const currentBranch = await fetchCurrentBranchProfile()
         if (mounted) {
@@ -78,18 +65,6 @@ export default function CheckoutPage() {
       mounted = false
     }
   }, [])
-
-  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
-  
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.product.basePrice * item.quantity,
-    0
-  )
-  
-  const tax = cartItems.reduce(
-    (sum, item) => sum + Math.floor(item.product.basePrice * item.product.taxRate) * item.quantity,
-    0
-  )
   
   const total = subtotal + tax
   const shippingFee = subtotal >= 5000 ? 0 : 550
@@ -103,7 +78,7 @@ export default function CheckoutPage() {
         paymentMethod,
         deliveryNotes,
       })
-      localStorage.removeItem(CART_STORAGE_KEY)
+      clearCart()
       toast({
         title: "ご注文ありがとうございます",
         description: `注文番号 ${orderNo} を受け付けました。`,

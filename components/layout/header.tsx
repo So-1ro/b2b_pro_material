@@ -29,6 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/utils/supabase/browser"
+import { useCart } from "@/lib/context/cart-context"
 
 const categories = [
   "すべて",
@@ -54,6 +55,8 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
   const [selectedCategory, setSelectedCategory] = useState("すべて")
   const [searchQuery, setSearchQuery] = useState("")
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const { itemCount } = useCart()
+  const displayCartCount = cartItemCount > 0 ? cartItemCount : itemCount
 
   useEffect(() => {
     const supabase = createClient()
@@ -193,11 +196,11 @@ export function Header({ cartItemCount = 0, isAdmin = false }: HeaderProps) {
                 <Link href="/cart" className="relative">
                   <Button variant="ghost" size="icon" className="relative bg-transparent">
                     <ShoppingCart className="h-5 w-5" />
-                    {cartItemCount > 0 && (
+                    {displayCartCount > 0 && (
                       <Badge 
                         className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-accent text-accent-foreground"
                       >
-                        {cartItemCount > 99 ? "99+" : cartItemCount}
+                        {displayCartCount > 99 ? "99+" : displayCartCount}
                       </Badge>
                     )}
                     <span className="sr-only">カート</span>

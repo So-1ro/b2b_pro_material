@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import type { Product } from "@/lib/data/products"
 import { cn } from "@/lib/utils"
+import { useCart } from "@/lib/context/cart-context"
 
 type QuickOrderRow = {
   id: number
@@ -44,6 +45,7 @@ type QuickOrderClientProps = {
 
 export function QuickOrderClient({ products }: QuickOrderClientProps) {
   const { toast } = useToast()
+  const { addItem } = useCart()
   const [rows, setRows] = useState<QuickOrderRow[]>([
     { id: 1, sku: "", quantity: 1 },
     { id: 2, sku: "", quantity: 1 },
@@ -104,9 +106,15 @@ export function QuickOrderClient({ products }: QuickOrderClientProps) {
       return
     }
 
+    validRows.forEach((row) => {
+      if (row.product) {
+        addItem(row.product, row.quantity)
+      }
+    })
+
     toast({
       title: "カートに追加しました",
-      description: `${validRows.length}件の商品をカートに追加しました（デモ動作）。`,
+      description: `${validRows.length}件の商品をカートに追加しました。`,
     })
   }
 

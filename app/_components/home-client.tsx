@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { AnnouncementBanner } from "@/components/home/announcement-banner"
@@ -10,34 +9,23 @@ import { ProductCarousel } from "@/components/home/product-carousel"
 import type { Product } from "@/lib/data/products"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
+import { useCart } from "@/lib/context/cart-context"
 
 type HomeClientProps = {
   products: Product[]
 }
 
 export function HomeClient({ products }: HomeClientProps) {
-  const [cartItems, setCartItems] = useState<{ product: Product; quantity: number }[]>([])
+  const { addItem } = useCart()
   const { toast } = useToast()
 
   const handleAddToCart = (product: Product) => {
-    setCartItems((prev) => {
-      const existingItem = prev.find((item) => item.product.id === product.id)
-      if (existingItem) {
-        return prev.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
-      }
-      return [...prev, { product, quantity: 1 }]
-    })
+    addItem(product, 1)
     toast({
       title: "カートに追加しました",
       description: `${product.name} をカートに追加しました`,
     })
   }
-
-  const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
 
   const popularProducts = products.slice(0, 6)
   const bestSellers = products.slice(6, 12).length > 0 ? products.slice(6, 12) : products.slice(0, 6)
@@ -45,7 +33,7 @@ export function HomeClient({ products }: HomeClientProps) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header cartItemCount={cartItemCount} />
+      <Header />
       <AnnouncementBanner />
 
       <main className="flex-1">

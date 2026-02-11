@@ -9,6 +9,7 @@ import { ProductGrid } from "@/components/products/product-grid"
 import type { Product } from "@/lib/data/products"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
+import { useCart } from "@/lib/context/cart-context"
 
 type CategoryInfo = {
   id: string
@@ -25,8 +26,10 @@ type CategoryClientProps = {
 
 export function CategoryClient({ products, currentCategoryId, currentCategory }: CategoryClientProps) {
   const { toast } = useToast()
+  const { addItem } = useCart()
 
   const handleAddToCart = (product: Product) => {
+    addItem(product, 1)
     toast({
       title: "カートに追加しました",
       description: `${product.name} をカートに追加しました`,

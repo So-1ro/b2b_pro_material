@@ -2,6 +2,7 @@ import React from "react"
 import type { Metadata, Viewport } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
+import { Providers } from "@/app/providers"
 
 export const metadata: Metadata = {
   title: 'ProMaterial | B2B資材調達プラットフォーム',
@@ -40,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="font-sans antialiased">
-        {children}
+        <Providers>{children}</Providers>
         <Analytics />
       </body>
     </html>

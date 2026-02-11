@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { 
   ChevronRight, 
@@ -20,74 +20,19 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { products, type Product } from "@/lib/data/products"
-
-interface CartItem {
-  product: Product
-  quantity: number
-}
-
-// Mock cart data for demonstration
-const initialCartItems: CartItem[] = [
-  { product: products[0], quantity: 5 },
-  { product: products[1], quantity: 2 },
-  { product: products[3], quantity: 3 },
-]
-const CART_STORAGE_KEY = "cart"
+import { useCart } from "@/lib/context/cart-context"
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState<CartItem[]>(initialCartItems)
+  const { items: cartItems, updateQuantity, removeItem, itemCount, subtotal, tax } = useCart()
+  const [imageErrorIds, setImageErrorIds] = useState<Record<string, boolean>>({})
   const { toast } = useToast()
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(CART_STORAGE_KEY)
-      if (raw) {
-        setCartItems(JSON.parse(raw) as CartItem[])
-        return
-      }
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(initialCartItems))
-    } catch {
-      // Ignore localStorage parsing errors
-    }
-  }, [])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems))
-    } catch {
-      // Ignore localStorage write errors
-    }
-  }, [cartItems])
-
-  const updateQuantity = (productId: string, newQuantity: number) => {
-    if (newQuantity < 1) return
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.product.id === productId ? { ...item, quantity: newQuantity } : item
-      )
-    )
-  }
-
-  const removeItem = (productId: string) => {
-    setCartItems((prev) => prev.filter((item) => item.product.id !== productId))
+  const handleRemoveItem = (productId: string) => {
+    removeItem(productId)
     toast({
       title: "商品を削除しました",
       description: "カートから商品を削除しました",
     })
   }
-
-  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
-  
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.product.basePrice * item.quantity,
-    0
-  )
-  
-  const tax = cartItems.reduce(
-    (sum, item) => sum + Math.floor(item.product.basePrice * item.product.taxRate) * item.quantity,
-    0
-  )
   
   const total = subtotal + tax
   const shippingFee = subtotal >= 5000 ? 0 : 550
@@ -150,12 +95,15 @@ export default function CartPage() {
                     <div className="flex gap-4">
                       {/* Product Image */}
                       <div className="w-24 h-24 bg-muted rounded-lg flex-shrink-0 overflow-hidden relative">
-                        {item.product.images?.[0] ? (
+                        {item.product.images?.[0] && !imageErrorIds[item.product.id] ? (
                           <img
                             src={item.product.images[0]}
                             alt={item.product.name}
                             className="absolute inset-0 h-full w-full object-cover"
                             loading="lazy"
+                            onError={() =>
+                              setImageErrorIds((prev) => ({ ...prev, [item.product.id]: true }))
+                            }
                           />
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -185,7 +133,7 @@ export default function CartPage() {
                             variant="ghost"
                             size="icon"
                             className="text-muted-foreground hover:text-destructive flex-shrink-0 bg-transparent"
-                            onClick={() => removeItem(item.product.id)}
+                            onClick={() => handleRemoveItem(item.product.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                             <span className="sr-only">削除</span>
